@@ -25,6 +25,7 @@ const sendEmail = async (params) => {
     ...params
   };
   await mg.messages.create(config.mailgun.DOMAIN, data)
+  console.log('Message sent: %s', data.subject);
 };
 
 const logStep = (stepTitle) => {

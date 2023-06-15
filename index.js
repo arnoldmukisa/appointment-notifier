@@ -7,6 +7,8 @@ const {siteInfo, loginCred, IS_PROD, NEXT_SCHEDULE_POLL, MAX_NUMBER_OF_POLL, NOT
 
 let isLoggedIn = false;
 let maxTries = MAX_NUMBER_OF_POLL
+let tries = 0;
+let foundDates = [];
 
 const login = async (page) => {
   logStep('logging in');
@@ -30,13 +32,14 @@ const login = async (page) => {
 }
 
 const notifyMe = async (earliestDate) => {
-  const formattedDate = format(earliestDate, 'dd-MM-yyyy');
+  const formattedDate = format(earliestDate, 'dd-MMMM-yyyy');
   logStep(`sending an email to schedule for ${formattedDate}`);
   await sendEmail({
     subject: `We found an earlier date ${formattedDate}`,
-    text: `Hurry and schedule for ${formattedDate} before it is taken.`
+    text: `Hurry and schedule for ${formattedDate} before it is taken. Go to the appointments page here: ${siteInfo.LOGIN_URL}`
   })
 }
+
 
 const checkForSchedules = async (page) => {
   logStep('checking for schedules');
@@ -72,6 +75,7 @@ const checkForSchedules = async (page) => {
 
 
 const process = async (browser) => {
+  tries++;
   logStep(`starting process with ${maxTries} tries left`);
 
   if(maxTries-- <= 0){
@@ -86,9 +90,26 @@ const process = async (browser) => {
   }
 
   const earliestDate = await checkForSchedules(page);
+
+  // store each found date
+  if (earliestDate) {
+    foundDates.push(format(earliestDate, 'dd-MMMM-yyyy'));
+  }
+
   if(earliestDate && isBefore(earliestDate, parseISO(NOTIFY_ON_DATE_BEFORE))){
     await notifyMe(earliestDate);
   }
+
+  // notify on first run and every 5th run
+  if (tries === 1 || tries % 5 === 0) {
+    const lastFoundDates = foundDates.slice(-5).join(", ");
+    await sendEmail({
+      to: 'arnoldmukisa@gmail.com,visanotify@robot.zapier.com,arnold.mukisa@blackrock.com',
+      subject: `Try ${tries}: summary of the last dates found`,
+      text: `Here are the last dates found in the previous tries: ${lastFoundDates}.`
+    });
+  }
+
 
   await delay(NEXT_SCHEDULE_POLL)
 
