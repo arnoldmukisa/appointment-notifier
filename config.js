@@ -1,7 +1,8 @@
 module.exports = {
   loginCred:{
     EMAIL: process.env.EMAIL,
-    PASSWORD: process.env.PASSWORD
+    PASSWORD: process.env.PASSWORD,
+    MAIN_ACCOUNT: process.env.MAIN_ACCOUNT || true
   },
 
   siteInfo: {
@@ -12,7 +13,9 @@ module.exports = {
     get APPOINTMENTS_JSON_URL(){
       return `https://ais.usvisa-info.com/${this.COUNTRY_CODE}/niv/schedule/${this.SCHEDULE_ID}/appointment/days/${this.FACILITY_ID}.json?appointments%5Bexpedite%5D=false`
     },
-
+    get PAYMENTS_URL(){
+      return `https://ais.usvisa-info.com/${this.COUNTRY_CODE}/niv/schedule/${this.SCHEDULE_ID}/payment`
+    },
     get LOGIN_URL () {
       return `https://ais.usvisa-info.com/${this.COUNTRY_CODE}/niv/users/sign_in`
     }

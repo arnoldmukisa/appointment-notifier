@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const {parseISO, compareAsc, isBefore, format} = require('date-fns')
 require('dotenv').config();
+const dateFns = require('date-fns');
 
 const {delay, sendEmail, logStep} = require('./utils');
 const {siteInfo, loginCred, IS_PROD, NEXT_SCHEDULE_POLL, MAX_NUMBER_OF_POLL, NOTIFY_ON_DATE_BEFORE} = require('./config');
@@ -40,7 +41,6 @@ const notifyMe = async (earliestDate) => {
   })
 }
 
-
 const checkForSchedules = async (page) => {
   logStep('checking for schedules');
   await page.setExtraHTTPHeaders({
@@ -73,6 +73,41 @@ const checkForSchedules = async (page) => {
   }
 }
 
+const checkForFirstAvailableDateFromPaymentsPages = async (page) => {
+  logStep('Checking for first available date from payments page');
+
+  // Set extra HTTP headers
+  await page.setExtraHTTPHeaders({
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'X-Requested-With': 'XMLHttpRequest'
+  });
+
+  try {
+    // Navigate to the payments page
+    await page.goto(siteInfo.PAYMENTS_URL);
+    const dateElement = await page.$('table.for-layout tr:first-child td:nth-child(2)');
+
+    // Extract the date text from the page
+    const date = await dateElement.evaluate( el => el.innerText);
+
+    // Parse and return the date
+    if (date && date !== 'No Appointments Available') {
+      let dateText = dateFns.parse(date, 'dd MMMM, yyyy', new Date());
+      dateText = dateFns.format(dateText, 'dd-MMMM-yyyy');
+      logStep(`Found date ${dateText}`);
+      return new Date(dateText);
+    } else if (date === 'No Appointments Available') {
+        logStep('No appointments available');
+        return null;
+    } else {
+      throw new Error("Couldn't find the expected date on the payments page");
+    }
+  } catch (err) {
+    console.log("Unable to parse page content", await page.content());
+    console.error(err);
+    isLoggedIn = false;
+  }
+};
 
 const process = async (browser) => {
   tries++;
@@ -89,7 +124,12 @@ const process = async (browser) => {
      isLoggedIn = await login(page);
   }
 
-  const earliestDate = await checkForSchedules(page);
+  let earliestDate;
+  if (loginCred.MAIN_ACCOUNT === "false") {
+    earliestDate = await checkForFirstAvailableDateFromPaymentsPages(page);
+  } else {
+     earliestDate = await checkForSchedules(page);
+   }
 
   // store each found date
   if (earliestDate) {
