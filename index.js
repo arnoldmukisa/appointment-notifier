@@ -13,10 +13,14 @@ let foundDates = [];
 
 const login = async (page) => {
   logStep('logging in');
-  await page.goto(siteInfo.LOGIN_URL);
+  await page.goto(siteInfo.LOGIN_URL, { waitUntil: 'networkidle2' });
 
-  // Wait for the form to be loaded
-  await page.waitForSelector("form#sign_in_form");
+  // Log the page content
+  const pageContent = await page.content();
+  console.log(pageContent);
+
+  // Wait for the form to be loaded with an increased timeout
+  await page.waitForSelector("form#sign_in_form", { timeout: 60000 });
 
   const form = await page.$("form#sign_in_form");
 
@@ -38,7 +42,7 @@ const login = async (page) => {
   await privacyTerms.click();
   await signInButton.click();
 
-  await page.waitForNavigation();
+  await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
   return true;
 }
