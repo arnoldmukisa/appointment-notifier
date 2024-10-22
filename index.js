@@ -63,7 +63,8 @@ const checkForSchedules = async (page) => {
   logStep('checking for schedules');
   await page.setExtraHTTPHeaders({
     'Accept': 'application/json, text/javascript, */*; q=0.01',
-    'X-Requested-With': 'XMLHttpRequest'
+    'X-Requested-With': 'XMLHttpRequest',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
   });
   await page.goto(siteInfo.APPOINTMENTS_JSON_URL);
 
@@ -80,13 +81,13 @@ const checkForSchedules = async (page) => {
       throw "Failed to parse dates, probably because you are not logged in";
     }
 
-    const dates =parsedBody.map(item => parseISO(item.date));
-    const [earliest] = dates.sort(compareAsc)
+    const dates = parsedBody.map(item => parseISO(item.date));
+    const [earliest] = dates.sort(compareAsc);
 
     return earliest;
   }catch(err){
     console.log("Unable to parse page JSON content", originalPageContent);
-    console.error(err)
+    console.error(err);
     isLoggedIn = false;
   }
 }
