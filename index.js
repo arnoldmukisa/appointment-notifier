@@ -15,12 +15,23 @@ const login = async (page) => {
   logStep('logging in');
   await page.goto(siteInfo.LOGIN_URL);
 
+  // Wait for the form to be loaded
+  await page.waitForSelector("form#sign_in_form");
+
   const form = await page.$("form#sign_in_form");
+
+  if (!form) {
+    throw new Error('Login form not found');
+  }
 
   const email = await form.$('input[name="user[email]"]');
   const password = await form.$('input[name="user[password]"]');
   const privacyTerms = await form.$('input[name="policy_confirmed"]');
   const signInButton = await form.$('input[name="commit"]');
+
+  if (!email || !password || !privacyTerms || !signInButton) {
+    throw new Error('One of the form elements was not found');
+  }
 
   await email.type(loginCred.EMAIL);
   await password.type(loginCred.PASSWORD);
