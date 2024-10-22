@@ -97,16 +97,26 @@ const checkForFirstAvailableDateFromPaymentsPages = async (page) => {
   // Set extra HTTP headers
   await page.setExtraHTTPHeaders({
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-    'X-Requested-With': 'XMLHttpRequest'
+    'X-Requested-With': 'XMLHttpRequest',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
   });
 
   try {
     // Navigate to the payments page
-    await page.goto(siteInfo.PAYMENTS_URL);
+    await page.goto(siteInfo.PAYMENTS_URL, { waitUntil: 'networkidle2' });
+    
+    // Log the page content
+    const pageContent = await page.content();
+    console.log(pageContent);
+
     const dateElement = await page.$('table.for-layout tr:first-child td:nth-child(2)');
 
+    if (!dateElement) {
+      throw new Error("Date element not found on the payments page");
+    }
+
     // Extract the date text from the page
-    const date = await dateElement.evaluate( el => el.innerText);
+    const date = await dateElement.evaluate(el => el.innerText);
 
     // Parse and return the date
     if (date && date !== 'No Appointments Available') {
@@ -115,8 +125,8 @@ const checkForFirstAvailableDateFromPaymentsPages = async (page) => {
       logStep(`Found date ${dateText}`);
       return new Date(dateText);
     } else if (date === 'No Appointments Available') {
-        logStep('No appointments available');
-        return null;
+      logStep('No appointments available');
+      return null;
     } else {
       throw new Error("Couldn't find the expected date on the payments page");
     }
